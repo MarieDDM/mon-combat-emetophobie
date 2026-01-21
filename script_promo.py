@@ -11,6 +11,7 @@ import hashlib
 from ddgs import DDGS
 import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning)
+from duckduckgo_search import DDGS
 
 # ======================================================
 # CONFIGURATION
