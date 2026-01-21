@@ -8,9 +8,9 @@ import urllib.parse
 import json
 import datetime
 import hashlib
+from googlesearch import search
 import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning)
-from duckduckgo_search import DDGS
 
 # ======================================================
 # CONFIGURATION
