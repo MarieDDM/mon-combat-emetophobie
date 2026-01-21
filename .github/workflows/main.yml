@@ -19,7 +19,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install PyGithub requests googlesearch-python
+          pip install PyGithub requests googlesearch-python google-generativeai
 
       - name: Run Script
         env:
