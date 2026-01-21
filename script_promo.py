@@ -107,9 +107,25 @@ class KDPBookAgent:
 
     def search_queries(self):
         query = random.choice(VECTEURS_RECHERCHE)
-        print(f"🔍 Recherche DuckDuckGo : {query}")
-        with DDGS() as ddgs:
-            return list(ddgs.text(query, max_results=10))
+        print(f"🔍 Recherche Google : {query}")
+        try:
+            # On récupère les 5 meilleurs résultats Google
+            results = []
+            # 'search' renvoie des URLs. On simule la structure titre/body
+            for url in search(query, num_results=5, lang="fr"):
+                results.append({
+                    'title': query, # On utilise la requête comme base de titre
+                    'body': f"Sujet lié à : {query}. Source : {url}"
+                })
+            return results
+        except Exception as e:
+            print(f"⚠️ Erreur de recherche (Ratelimit) : {e}")
+            # Sécurité : Si Google bloque, on crée un résultat "fictif"
+            # basé sur le vecteur pour que le script produise quand même un article.
+            return [{
+                'title': query,
+                'body': "Génération basée sur le thème principal du vecteur de recherche."
+            }]
 
     def generate_page_content(self, topic, source_text):
         prompt = f"""
