@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /search/
+Disallow: /temp/
+
+# Encourage le crawl fréquent
+Crawl-delay: 1
+
+Sitemap: https://MarieDDM.github.io/mon-combat-emetophobie/sitemap.xml
