@@ -93,7 +93,7 @@ class KDPBookAgent:
             self.repo.create_file(CONFIG["CACHE_FILE"], "Initial cache", content)
 
     def get_ai_response(self, prompt):
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+        url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
         payload = {"contents": [{"parts": [{"text": prompt}]}]}
         try:
             r = requests.post(url, json=payload)
