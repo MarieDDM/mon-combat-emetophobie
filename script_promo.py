@@ -93,17 +93,36 @@ class KDPBookAgent:
             self.repo.create_file(CONFIG["CACHE_FILE"], "Initial cache", content)
 
     def get_ai_response(self, prompt):
-        url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
-        payload = {"contents": [{"parts": [{"text": prompt}]}]}
-        try:
-            r = requests.post(url, json=payload)
-            r.raise_for_status() # Vérifie si la requête a réussi (code 200)
-            data = r.json()
-            return data['candidates'][0]['content']['parts'][0]['text']
-        except Exception as e:
-            print(f"❌ Erreur Gemini : {e}")
-            if 'r' in locals(): print(f"Détail erreur : {r.text}")
-            return None
+        # Liste des variantes du modèle à essayer par ordre de priorité
+        models_to_try = [
+            "gemini-1.5-flash",
+            "gemini-1.5-flash-latest",
+            "gemini-1.5-pro",
+            "gemini-pro"
+        ]
+       
+        for model_name in models_to_try:
+            # On utilise v1beta qui est souvent plus flexible pour les noms de modèles
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={GEMINI_API_KEY}"
+            payload = {"contents": [{"parts": [{"text": prompt}]}]}
+           
+            try:
+                print(f"🤖 Tentative avec le modèle : {model_name}...")
+                r = requests.post(url, json=payload, timeout=30)
+               
+                if r.status_code == 200:
+                    data = r.json()
+                    return data['candidates'][0]['content']['parts'][0]['text']
+                else:
+                    print(f"⚠️ Modèle {model_name} indisponible (Code {r.status_code})")
+                    continue # On passe au modèle suivant
+                   
+            except Exception as e:
+                print(f"❌ Erreur technique avec {model_name} : {e}")
+                continue
+               
+        print("🛑 Tous les modèles ont échoué.")
+        return None
 
     def search_queries(self):
         query = random.choice(VECTEURS_RECHERCHE)
