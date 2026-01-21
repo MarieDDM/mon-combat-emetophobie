@@ -1,0 +1,28 @@
+name: Auto Promo Livre
+on:
+  schedule:
+    # Se lance à 8h00 et 20h00 UTC (ajustez selon vos besoins)
+    - cron: '0 8,20 * * *'
+  workflow_dispatch: # Permet de le lancer manuellement pour tester
+
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          pip install PyGithub requests duckduckgo_search
+
+      - name: Run Script
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python script_promo.py
