@@ -94,38 +94,41 @@ class KDPBookAgent:
 
     def get_ai_response(self, prompt):
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
-        headers = {'Content-Type': 'application/json'}
-        payload = {
-            "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {"temperature": 0.7, "maxOutputTokens": 2000}
-        }
+        payload = {"contents": [{"parts": [{"text": prompt}]}]}
         try:
-            response = requests.post(url, headers=headers, json=payload)
-            return response.json()['candidates'][0]['content']['parts'][0]['text']
-        except:
+            r = requests.post(url, json=payload)
+            r.raise_for_status() # Vérifie si la requête a réussi (code 200)
+            data = r.json()
+            return data['candidates'][0]['content']['parts'][0]['text']
+        except Exception as e:
+            print(f"❌ Erreur Gemini : {e}")
+            if 'r' in locals(): print(f"Détail erreur : {r.text}")
             return None
 
     def search_queries(self):
         query = random.choice(VECTEURS_RECHERCHE)
-        print(f"🔍 Recherche Google : {query}")
+        print(f"🔍 Tentative de recherche pour : {query}")
+        results = []
         try:
-            # On récupère les 5 meilleurs résultats Google
-            results = []
-            # 'search' renvoie des URLs. On simule la structure titre/body
-            for url in search(query, num_results=5, lang="fr"):
+            # On tente de récupérer quelques URLs sur Google
+            # On limite à 3 pour être plus discret
+            for url in search(query, num_results=3, lang="fr"):
                 results.append({
-                    'title': query, # On utilise la requête comme base de titre
-                    'body': f"Sujet lié à : {query}. Source : {url}"
+                    'title': query,
+                    'body': f"Thématique : {query}. Source d'inspiration : {url}"
                 })
-            return results
         except Exception as e:
-            print(f"⚠️ Erreur de recherche (Ratelimit) : {e}")
-            # Sécurité : Si Google bloque, on crée un résultat "fictif"
-            # basé sur le vecteur pour que le script produise quand même un article.
-            return [{
+            print(f"⚠️ Google block (Ratelimit) : {e}")
+
+        # FORCE GENERATION : Si Google ne renvoie rien, on crée quand même un sujet
+        # pour que l'IA travaille sur le mot-clé directement.
+        if not results:
+            print("💡 Passage en génération directe (sans source externe).")
+            results.append({
                 'title': query,
-                'body': "Génération basée sur le thème principal du vecteur de recherche."
-            }]
+                'body': "Génération basée sur l'expérience personnelle de l'autrice."
+            })
+        return results
 
     def generate_page_content(self, topic, source_text):
         prompt = f"""
@@ -217,25 +220,33 @@ class KDPBookAgent:
 
     def work(self):
         results = self.search_queries()
-        new_count = 0
+        new_p = 0
         for res in results:
-            if new_count >= CONFIG["MAX_PAGES_PER_CYCLE"]: break
-            if res['title'] not in self.cache:
-                print(f"✍️ Création : {res['title']}")
-                content_md = self.generate_page_content(res['title'], res['body'])
-                if content_md:
-                    # Conversion basique MD vers HTML (paragraphes)
-                    content_html = content_md.replace('\n\n', '</p><p>').replace('# ', '<h1>').replace('## ', '<h2>')
-                    if self.create_github_page(res['title'], f"<p>{content_html}</p>"):
-                        new_count += 1
+            if new_p >= CONFIG["MAX_PAGES_PER_CYCLE"]: break
+           
+            # On crée un titre de page unique basé sur le mot-clé + date
+            # pour éviter que le cache ne bloque les futures recherches sur le même thème
+            page_title = f"{res['title']} - {datetime.datetime.now().strftime('%d/%m')}"
+           
+            if page_title not in self.cache:
+                print(f"✍️ Rédaction de l'article : {page_title}...")
+                c = self.get_ai_response(f"Rédige un article touchant sur {res['title']}. Contexte : {res['body']}")
+               
+                if c:
+                    if self.create_github_page(page_title, c):
+                        print(f"✅ Article publié : {page_title}")
+                        new_p += 1
                         time.sleep(random.randint(*CONFIG["SLEEP_BETWEEN_PAGES"]))
-        
-        if new_count > 0:
+                else:
+                    print("跳 Erreur lors de la génération du contenu par l'IA.")
+            else:
+                print(f"⏭️ Sujet déjà traité récemment : {page_title}")
+               
+        if new_p > 0:
             self._save_cache()
             self.update_sitemap()
             self.update_index_html()
-            self.update_directory_indexes()
-        return new_count
+        return new_p
 
 if __name__ == "__main__":
     agent = KDPBookAgent()
