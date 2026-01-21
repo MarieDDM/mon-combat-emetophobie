@@ -96,35 +96,28 @@ class KDPBookAgent:
 
     def get_ai_response(self, prompt):
         try:
-            print("🔍 Diagnostic des modèles disponibles pour votre clé...")
-            available_models = [m.name for m in genai.list_models()]
-            print(f"📋 Modèles détectés : {available_models}")
+            # On force l'utilisation d'un modèle que l'on a vu dans votre liste
+            # gemini-2.0-flash est excellent et présent dans vos logs
+            model_name = 'gemini-2.0-flash'
            
-            # On essaie d'abord le flash, puis le pro, puis le premier de la liste
-            target_models = ['models/gemini-1.5-flash', 'models/gemini-pro', 'models/gemini-1.5-pro']
-           
-            # On ajoute à la liste le premier modèle de type 'generateContent' trouvé si les nôtres n'y sont pas
-            selected_model = None
-            for target in target_models:
-                if target in available_models:
-                    selected_model = target
-                    break
-           
-            if not selected_model and available_models:
-                selected_model = available_models[0]
-           
-            if not selected_model:
-                print("❌ Aucun modèle disponible pour cette clé.")
-                return None
-
-            print(f"🤖 Utilisation du modèle : {selected_model}")
-            model = genai.GenerativeModel(selected_model)
+            print(f"🤖 Utilisation forcée du modèle détecté : {model_name}")
+            model = genai.GenerativeModel(model_name)
             response = model.generate_content(prompt)
-            return response.text
+           
+            if response and response.text:
+                return response.text
+            return None
 
         except Exception as e:
-            print(f"❌ Erreur critique IA : {e}")
-            return None
+            print(f"❌ Erreur IA avec {model_name} : {e}")
+            # Si le 2.0 échoue, on tente le flash-latest qui est aussi dans votre liste
+            try:
+                print("🔄 Tentative de secours avec gemini-flash-latest...")
+                model = genai.GenerativeModel('gemini-flash-latest')
+                response = model.generate_content(prompt)
+                return response.text
+            except:
+                return None
 
     def search_queries(self):
         query = random.choice(VECTEURS_RECHERCHE)
