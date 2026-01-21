@@ -9,6 +9,7 @@ import json
 import datetime
 import hashlib
 from googlesearch import search
+import google.generativeai as genai
 import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 
@@ -76,6 +77,7 @@ class KDPBookAgent:
         self.gh = Github(auth=auth)
         self.repo = self.gh.get_repo(REPO_NAME)
         self.cache = self._load_cache()
+        genai.configure(api_key=GEMINI_API_KEY)
 
     def _load_cache(self):
         try:
@@ -93,36 +95,17 @@ class KDPBookAgent:
             self.repo.create_file(CONFIG["CACHE_FILE"], "Initial cache", content)
 
     def get_ai_response(self, prompt):
-        # Liste des variantes du modèle à essayer par ordre de priorité
-        models_to_try = [
-            "gemini-1.5-flash",
-            "gemini-1.5-flash-latest",
-            "gemini-1.5-pro",
-            "gemini-pro"
-        ]
-       
-        for model_name in models_to_try:
-            # On utilise v1beta qui est souvent plus flexible pour les noms de modèles
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={GEMINI_API_KEY}"
-            payload = {"contents": [{"parts": [{"text": prompt}]}]}
+        try:
+            print("🤖 Appel à Gemini via la bibliothèque officielle...")
+            model = genai.GenerativeModel('gemini-1.5-flash')
+            response = model.generate_content(prompt)
            
-            try:
-                print(f"🤖 Tentative avec le modèle : {model_name}...")
-                r = requests.post(url, json=payload, timeout=30)
-               
-                if r.status_code == 200:
-                    data = r.json()
-                    return data['candidates'][0]['content']['parts'][0]['text']
-                else:
-                    print(f"⚠️ Modèle {model_name} indisponible (Code {r.status_code})")
-                    continue # On passe au modèle suivant
-                   
-            except Exception as e:
-                print(f"❌ Erreur technique avec {model_name} : {e}")
-                continue
-               
-        print("🛑 Tous les modèles ont échoué.")
-        return None
+            if response and response.text:
+                return response.text
+            return None
+        except Exception as e:
+            print(f"❌ Erreur Gemini : {e}")
+            return None
 
     def search_queries(self):
         query = random.choice(VECTEURS_RECHERCHE)
