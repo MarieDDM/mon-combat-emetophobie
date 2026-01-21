@@ -19,7 +19,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install PyGithub requests duckduckgo_search==5.3.1b1
+          pip install PyGithub requests googlesearch-python
 
       - name: Run Script
         env:
