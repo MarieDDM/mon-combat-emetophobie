@@ -201,6 +201,12 @@ class KDPBookAgent:
         # Extraction des parties générées par l'IA
         try:
             art_content = content.split('[CONTENU]')[1].split('[FAQ]')[0].strip()
+            # Nettoyage des résidus Markdown si l'IA a fait une erreur
+            art_content = art_content.replace('## ', '<h2>').replace('**', '<strong>')
+            # Si l'IA a oublié les balises <p>, on remplace les doubles retours à la ligne
+            if '<p>' not in art_content:
+                paragraphs = art_content.split('\n\n')
+                art_content = ''.join(f'<p>{p.strip()}</p>' for p in paragraphs if p.strip())
             faq_raw = content.split('[FAQ]')[1].split('[DESCRIPTION]')[0].strip()
             meta_desc = content.split('[DESCRIPTION]')[1].strip()
         except:
@@ -399,21 +405,27 @@ class KDPBookAgent:
 Rédige un article expert et touchant sur le thème : {res['title']}.
 Contexte : {res['body']}
 
-L'article doit être structuré exactement comme suit :
+L'article doit être structuré exactement comme suit (respecte strictement les balises HTML) :
 
 [CONTENU]
-(Rédige l'article ici avec des balises HTML : <h2>, <p>, <strong>. Fais des paragraphes courts et aérés. Style premium et empathique.)
+Utilise exclusivement ces balises HTML :
+- <h2> pour les titres de sections (ajoute un titre tous les 2-3 paragraphes).
+- <p> pour chaque paragraphe.
+- IMPORTANT : Un paragraphe ne doit pas dépasser 3 phrases.
+- <ul> et <li> pour créer une liste de conseils ou de points clés au milieu de l'article.
+- <blockquote> pour une phrase particulièrement forte ou émotionnelle.
+Style : Empathique, élégant, aéré. Ne mets JAMAIS de symboles Markdown comme ## ou **.
 
 [FAQ]
 Question 1: (Une question spécifique sur le thème)
-Réponse 1: (Ta réponse)
+Réponse 1: (Ta réponse courte)
 Question 2: Comment ton livre aide-t-il spécifiquement les personnes souffrant d'émétophobie ?
 Réponse 2: Dans mon livre, je partage mon cheminement sans filtre, offrant non seulement un témoignage mais aussi la preuve qu'on peut avancer malgré la peur.
 Question 3: (Une question spécifique sur l'impact émotionnel du thème)
-Réponse 3: (Ta réponse)
+Réponse 3: (Ta réponse courte)
 
 [DESCRIPTION]
-(Une méta-description de 150 caractères maximum pour Google)
+(Une méta-description de 150 caractères pour Google)
 """
 c = self.get_ai_response(prompt)
                
