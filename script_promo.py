@@ -5,6 +5,7 @@ import time
 import random
 import re
 import urllib.parse
+import unicodedata
 import json
 import datetime
 import hashlib
@@ -194,7 +195,12 @@ class KDPBookAgent:
             return ""
 
     def create_github_page(self, title, content):
-        slug = re.sub(r'[^a-z0-9]+', '-', title.lower()).strip('-')
+        # 1. Normalisation : on sépare les accents des lettres
+        nfkd_form = unicodedata.normalize('NFKD', title.lower())
+        # 2. On ne garde que les caractères ASCII (on supprime les accents détachés)
+        title_ascii = "".join([c for c in nfkd_form if not unicodedata.combining(c)])
+        # 3. On crée le slug propre sans caractères spéciaux
+        slug = re.sub(r'[^a-z0-9]+', '-', title_ascii).strip('-')
         related_links_html = self.get_related_links(slug)
         path = f"articles/{slug}.html"
 
