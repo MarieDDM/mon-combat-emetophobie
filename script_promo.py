@@ -161,8 +161,34 @@ class KDPBookAgent:
         """
         return self.get_ai_response(prompt)
 
+    def get_related_links(self, current_slug):
+        """Récupère 3 articles existants pour le maillage interne."""
+        try:
+            # On récupère la liste des fichiers dans le dossier articles
+            contents = self.repo.get_contents("articles")
+            all_articles = [c for c in contents if c.name.endswith(".html") and c.name != f"{current_slug}.html"]
+           
+            if not all_articles:
+                return ""
+
+            # On en choisit 3 au hasard (ou moins si on en a moins de 3)
+            import random
+            selected = random.sample(all_articles, min(len(all_articles), 3))
+           
+            html = '<section class="related-articles"><h3>À lire aussi :</h3><ul>'
+            for art in selected:
+                # On transforme le nom du fichier (slug-titre.html) en titre lisible
+                # On enlève le .html et on remplace les tirets par des espaces
+                clean_name = art.name.replace('.html', '').replace('-', ' ').capitalize()
+                html += f'<li><a href="{SITE_BASE_URL}/articles/{art.name}">{clean_name}</a></li>'
+            html += '</ul></section>'
+            return html
+        except:
+            return ""
+
     def create_github_page(self, title, content):
         slug = re.sub(r'[^a-z0-9]+', '-', title.lower()).strip('-')
+        related_links_html = self.get_related_links(slug)
         path = f"articles/{slug}.html"
 
         # Extraction des parties générées par l'IA
@@ -231,6 +257,12 @@ class KDPBookAgent:
         <article>
             <h1>{title}</h1>
             {art_content}
+
+    <section class="faq-section">
+                {faq_html}
+            </section>
+
+            {related_links_html}  <div class="cta-box">
            
             <section class="faq-section">
                 {faq_html}
