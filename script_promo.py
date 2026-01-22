@@ -433,17 +433,17 @@ Réponse 3: (Ta réponse courte)
 [DESCRIPTION]
 (Une méta-description de 150 caractères pour Google)
 """
-c = self.get_ai_response(prompt)
+        c = self.get_ai_response(prompt)
                
-            if c:
-                if self.create_github_page(page_title, c):
-                    print(f"✅ Article publié : {page_title}")
-                      new_p += 1
-                      time.sleep(random.randint(*CONFIG["SLEEP_BETWEEN_PAGES"]))
+        if c:
+            if self.create_github_page(page_title, c):
+                print(f"✅ Article publié : {page_title}")
+                new_p += 1
+                time.sleep(random.randint(*CONFIG["SLEEP_BETWEEN_PAGES"]))
              else:
                  print("跳 Erreur lors de la génération du contenu par l'IA.")
-             else:
-                 print(f"⏭️ Sujet déjà traité récemment : {page_title}")
+        else:
+            print(f"⏭️ Sujet déjà traité récemment : {page_title}")
                
         if new_p > 0:
             self._save_cache()
