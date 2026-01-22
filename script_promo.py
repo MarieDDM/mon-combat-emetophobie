@@ -71,6 +71,13 @@ VECTEURS_RECHERCHE = [
     "crise d'angoisse vomissement peur récit"
 ]
 
+CATEGORIES = {
+    "Maternité & Grossesse": ["grossesse", "mère", "maternité", "accouchement", "enfant"],
+    "Deuil & Émotions": ["deuil", "grands-mères", "perte", "tristesse", "émotionnelle"],
+    "Comprendre la Phobie": ["qu'est-ce que", "symptômes", "mécanismes", "comprendre", "pourquoi"],
+    "Vie Quotidienne": ["quotidien", "vivre avec", "travail", "sorties", "témoignage", "peur de vomir"]
+}
+
 class KDPBookAgent:
     def __init__(self):
         auth = Auth.Token(GITHUB_TOKEN)
@@ -299,9 +306,67 @@ class KDPBookAgent:
         except: pass
 
     def update_index_html(self):
-        """Met à jour la page d'accueil principale."""
-        # Logique de mise à jour de l'index racine avec les derniers articles
-        pass
+        contents = self.repo.get_contents("articles")
+        all_articles = [c for c in contents if c.name.endswith(".html")]
+       
+        # On prépare un dictionnaire pour ranger les articles
+        classified = {cat: [] for cat in CATEGORIES.keys()}
+        classified["Autres témoignages"] = [] # Pour ceux qui ne rentrent nulle part
+
+        for art in all_articles:
+            title_clean = art.name.replace('.html', '').replace('-', ' ')
+            found = False
+            for cat, keywords in CATEGORIES.items():
+                if any(k in title_clean.lower() for k in keywords):
+                    classified[cat].append(art)
+                    found = True
+                    break
+            if not found:
+                classified["Autres témoignages"].append(art)
+
+                sections_html = ""
+        for cat, arts in classified.items():
+            if arts: # On n'affiche la catégorie que s'il y a des articles
+                sections_html += f"""
+                <section class="category-block">
+                    <h2>{cat}</h2>
+                    <div class="articles-grid">
+                """
+                for a in arts:
+                    display_title = a.name.replace('.html', '').replace('-', ' ').capitalize()
+                    sections_html += f'<a href="{SITE_BASE_URL}/articles/{a.name}" class="article-card">{display_title}</a>'
+               
+                sections_html += "</div></section>"
+
+                full_html = f"""<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mon Combat contre l'Émétophobie - Témoignages</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="hero">
+        <h1>Vivre et guérir de l'Émétophobie</h1>
+        <p>Découvrez mon parcours et des dizaines de témoignages pour ne plus vous sentir seul(e).</p>
+        <a href="{BOOK_URL}" class="main-cta">Découvrir mon livre sur Amazon</a>
+    </header>
+    <main>
+        {sections_html}
+    </main>
+    <footer>
+        <p>© {datetime.datetime.now().year} - Marie - Mon Combat contre l'Émétophobie</p>
+    </footer>
+</body>
+</html>"""
+
+        # Envoi sur GitHub
+        try:
+            f = self.repo.get_contents("index.html")
+            self.repo.update_file(f.path, "Mise à jour index thématique", full_html, f.sha)
+        except:
+            self.repo.create_file("index.html", "Création index thématique", full_html)
 
     def update_sitemap(self):
         """Génère le sitemap.xml pour Google."""
