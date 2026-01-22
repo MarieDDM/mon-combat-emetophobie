@@ -440,8 +440,8 @@ Réponse 3: (Ta réponse courte)
                 print(f"✅ Article publié : {page_title}")
                 new_p += 1
                 time.sleep(random.randint(*CONFIG["SLEEP_BETWEEN_PAGES"]))
-        else:
-            print("跳 Erreur lors de la génération du contenu par l'IA.")
+            else:
+                print("跳 Erreur lors de la génération du contenu par l'IA.")
         else:
             print(f"⏭️ Sujet déjà traité récemment : {page_title}")
                
