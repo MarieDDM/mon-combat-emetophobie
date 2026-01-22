@@ -164,16 +164,64 @@ class KDPBookAgent:
     def create_github_page(self, title, content):
         slug = re.sub(r'[^a-z0-9]+', '-', title.lower()).strip('-')
         path = f"articles/{slug}.html"
-        
+
+        # Extraction des parties générées par l'IA
+        try:
+            art_content = content.split('[CONTENU]')[1].split('[FAQ]')[0].strip()
+            faq_raw = content.split('[FAQ]')[1].split('[DESCRIPTION]')[0].strip()
+            meta_desc = content.split('[DESCRIPTION]')[1].strip()
+        except:
+            # Sécurité si l'IA rate le formatage
+            art_content = content
+            faq_raw = ""
+            meta_desc = f"Découvrez un témoignage sur {title} lié à l'émétophobie."
+
+        # Formatage de la FAQ en HTML (Accordéons)
+        faq_html = "<h2>Foire Aux Questions</h2>"
+        faq_items_json = []
+       
+        # Petit parseur simple pour transformer le texte FAQ en HTML et JSON
+        import re as regex
+        faq_parts = regex.split(r'Question \d:', faq_raw)
+        for part in faq_parts:
+            if 'Réponse' in part:
+                q_and_a = part.split('Réponse')
+                q = q_and_a[0].strip(': \n')
+                a = q_and_a[1].strip(': \n')
+                faq_html += f"<details><summary><strong>{q}</strong></summary><p>{a}</p></details>"
+                faq_items_json.append({
+                    "@type": "Question",
+                    "name": q,
+                    "acceptedAnswer": {"@type": "Answer", "text": a}
+                })
+       
         # Structure HTML identique à ton script original
+        json_ld = {
+            "@context": "https://schema.org",
+            "@type": "Article",
+            "headline": title,
+            "description": meta_desc,
+            "author": {"@type": "Person", "name": "Marie"},
+            "datePublished": datetime.datetime.now().isoformat()
+        }
+       
+        import json
         html_content = f"""<!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{title} - Témoignage Émétophobie</title>
-    <meta name="description" content="Découvrez un témoignage authentique sur {title} lié à l'émétophobie et l'anxiété.">
+    <meta name="description" content="{meta_desc}">
     <link rel="stylesheet" href="{SITE_BASE_URL}/style.css">
+    <script type="application/ld+json">{json.dumps(json_ld)}</script>
+    <script type="application/ld+json">
+    {{
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": {json.dumps(faq_items_json)}
+    }}
+    </script>
 </head>
 <body>
     <header>
@@ -181,11 +229,17 @@ class KDPBookAgent:
     </header>
     <main>
         <article>
-            {content}
-            <div class="cta-box" style="margin-top:40px; padding:25px; border:3px solid #f0ad4e; border-radius:15px; background-color:#fffcf5; text-align:center;">
-                <h2 style="color:#d9534f;">Vous n'êtes pas seul(e) face à cette peur</h2>
+            <h1>{title}</h1>
+            {art_content}
+           
+            <section class="faq-section">
+                {faq_html}
+            </section>
+
+            <div class="cta-box">
+                <h2>Vous n'êtes pas seul(e) face à cette peur</h2>
                 <p>Mon autobiographie retrace tout mon combat contre l'émétophobie, de mes premières crises à ma vie de mère.</p>
-                <a href="{BOOK_URL}" style="display:inline-block; background:#d9534f; color:white; padding:18px 30px; text-decoration:none; border-radius:8px; font-weight:bold; font-size:1.2em;">Découvrir mon témoignage sur Amazon</a>
+                <a href="{BOOK_URL}" class="cta-button">Découvrir mon témoignage sur Amazon</a>
             </div>
         </article>
     </main>
@@ -244,7 +298,27 @@ class KDPBookAgent:
            
             if page_title not in self.cache:
                 print(f"✍️ Rédaction de l'article : {page_title}...")
-                c = self.get_ai_response(f"Rédige un article touchant sur {res['title']}. Contexte : {res['body']}")
+                prompt = f"""
+Rédige un article expert et touchant sur le thème : {res['title']}.
+Contexte : {res['body']}
+
+L'article doit être structuré exactement comme suit :
+
+[CONTENU]
+(Rédige l'article ici avec des balises HTML : <h2>, <p>, <strong>. Fais des paragraphes courts et aérés. Style premium et empathique.)
+
+[FAQ]
+Question 1: (Une question spécifique sur le thème)
+Réponse 1: (Ta réponse)
+Question 2: Comment ton livre aide-t-il spécifiquement les personnes souffrant d'émétophobie ?
+Réponse 2: Dans mon livre, je partage mon cheminement sans filtre, offrant non seulement un témoignage mais aussi la preuve qu'on peut avancer malgré la peur.
+Question 3: (Une question spécifique sur l'impact émotionnel du thème)
+Réponse 3: (Ta réponse)
+
+[DESCRIPTION]
+(Une méta-description de 150 caractères maximum pour Google)
+"""
+c = self.get_ai_response(prompt)
                
                 if c:
                     if self.create_github_page(page_title, c):
