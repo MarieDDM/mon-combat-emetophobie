@@ -258,6 +258,7 @@ class KDPBookAgent:
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{title} - Témoignage Émétophobie</title>
     <meta name="description" content="{meta_desc}">
+    <meta name="google-site-verification" content="EjJ4LXvlRqq4BsvBmkCSZFSCjdLY0VdRIemanD0UBEE" />
     <link rel="stylesheet" href="{SITE_BASE_URL}/style.css">
     <script type="application/ld+json">{json.dumps(json_ld)}</script>
     <script type="application/ld+json">
